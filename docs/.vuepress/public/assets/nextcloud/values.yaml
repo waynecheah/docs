@@ -1,0 +1,59 @@
+
+nextcloud:
+  password: '<password>'
+
+image:
+  tag: 'stable-fpm-alpine'
+
+# nextcloud:
+#   mail:
+#     enabled: true
+#     fromAddress: 'cheah@banlian.com'
+#     domain: 'banlian.com'
+#     smtp:
+#       host: 'mail.banlian.com'
+#       port: 465
+#       name: 'cheah@banlian.com'
+#       password: 'Yeesian1224!'
+
+nginx:
+  enabled: true
+  image:
+    repository: 'nginx'
+    tag: 'alpine'
+
+# mariadb:
+#   enabled: true
+#   db:
+#     password: 'esam1224'
+#   rootUser:
+#     password: 'esam1224'
+
+# redis:
+#   enabled: true
+
+service:
+  type: 'NodePort'
+  nodePort: 30180
+
+# persistence:
+#   enabled: true
+#   storageClass: 'standard'
+
+# rbac:
+#   enabled: true
+
+livenessProbe:
+  enabled: false
+readinessProbe:
+  enabled: false
+
+metrics:
+  image:
+    repository: 'xperimental/nextcloud-exporter:0.4.0-4-g2af5ccb'
+
+# helm repo add nextcloud https://nextcloud.github.io/helm/
+# helm install nextcloud -f values.yaml nextcloud/nextcloud -n nextcloud
+# helm upgrade -f values.yaml nextcloud nextcloud/nextcloud -n nextcloud
+# kubectl port-forward deployment/nextcloud 8080
+# helm uninstall nextcloud -n nextcloud
