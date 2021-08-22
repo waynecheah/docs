@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Dist files
+lib/
+
+# VuePress Output
+dist/
+
+# VS Code Config file
+.vscode/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Map files
+*.map
+
+# Theme Output Files
+packages/theme/**/*.js
+packages/theme/**/*d.ts
+!packages/theme/types/**/*.d.ts
+
+# Coverage Files
+coverage/
