@@ -31,6 +31,6 @@ crontab -e
 ```
 2. Add this line of config to the end of the crontab settings
 ```bash
-*/2 * * * * /usr/bin/bash /home/wayne/cloudflare.sh
+*/2 * * * * /usr/bin/bash /home/pi/cloudflare.sh
 ```
 3. Save

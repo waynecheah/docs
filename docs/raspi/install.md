@@ -115,14 +115,14 @@ Install the CustomResourceDefinition resources.
 kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.16.0/cert-manager.crds.yaml
 ```
 
-cert-manager Helm charts aren't hosted by the offical Helm hub, you need to configure a new repository named JetStack which maintains those charts
+cert-manager Helm charts aren't hosted by the official Helm hub, you need to configure a new repository named JetStack which maintains those charts
 ```bash
 helm repo add jetstack https://charts.jetstack.io && helm repo update
 ```
 
 Run the following command to install the cert-manager components under the kube-system namespace.
 ```bash
-helm install cert-manager jetstack/cert-manager --namespace kube-system --version v0.16.0
+helm install cert-manager jetstack/cert-manager --namespace kube-system --version v0.16.0 --set installCRDs=true
 ```
 
 Check that all three cert-manager components are running.
@@ -209,7 +209,7 @@ helm uninstall cert-manager --namespace kube-system
 
 Deploy the Persistent Volume
 ```yaml
-# persistentvolume.yaml
+# local-persistentvolume.yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -217,7 +217,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: local-storage
+  storageClassName: manual
   capacity:
     storage: 1Gi
   accessModes:
@@ -233,27 +233,49 @@ spec:
           operator: In
           values:
           - <node_name>
-
+```
+```bash
+kubectl apply -f local-persistentvolume.yaml
 ```
 
+OR
+
+```yaml
+# hostpath-persistentvolume.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: app-ssd-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/ssd/apps"
+```
 ```bash
-kubectl apply -f persistentvolume.yaml
+kubectl apply -f hostpath-persistentvolume.yaml
 ```
 
 Deploy the Persistent Volume Claim
 ```yaml
 # persistentvolumeclaim.yaml
 apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    name: my-volume
-  spec:
-    storageClassName: local-storage
-    accessModes:
-      - ReadWriteOnce
-    resources:
-      requests:
-        storage: 1Gi
+kind: PersistentVolumeClaim
+metadata:
+  name: my-volume
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ```
 
 ```bash

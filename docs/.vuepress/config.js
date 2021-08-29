@@ -216,8 +216,10 @@ module.exports = {
       '/raspi/': [
         '',
         'ddns',
-        'monitoring',
-        'install'
+        'pv',
+        'install',
+        'nextcloud',
+        'monitoring'
       ],
 
       '/': [
@@ -261,7 +263,14 @@ module.exports = {
           icon: 'config',
           prefix: 'raspi/',
           collapsable: true,
-          children: ['', 'ddns', 'monitoring', 'install']
+          children: [
+            '',
+            'ddns',
+            'pv',
+            'install',
+            'nextcloud',
+            'monitoring'
+          ]
         }
       ]
     })
