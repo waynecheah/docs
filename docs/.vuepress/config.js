@@ -219,6 +219,7 @@ module.exports = {
         'pv',
         'install',
         'nextcloud',
+        'docker',
         'monitoring'
       ],
 
@@ -269,6 +270,7 @@ module.exports = {
             'pv',
             'install',
             'nextcloud',
+            'docker',
             'monitoring'
           ]
         }
