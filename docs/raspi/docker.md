@@ -24,6 +24,12 @@ sudo groupadd docker
 sudo usermod -aG docker ${USER}
 newgrp docker
 ```
+::: info Check User Group
+```bash
+groups ${USER}
+```
+:::
+
 ## Step 5: Enable the Docker system service to start your containers on boot
 ```bash
 sudo systemctl enable docker.service
@@ -42,6 +48,11 @@ sudo apt-get install -y python3 python3-pip
 ## Step 7: Install Docker-Compose
 ```bash
 sudo pip3 install docker-compose
+```
+
+## Step 8: Enable the Docker system service to start your containers on boot
+```bash
+sudo systemctl enable docker
 ```
 
 ---

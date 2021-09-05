@@ -36,6 +36,7 @@ module.exports = {
     repoLabel: 'Github',
     editLinks: true,
     docsDir: 'docs',
+    docsBranch: 'master',
     editLinkText: '',
     logo: '',
     lastUpdated: true,

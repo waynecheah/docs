@@ -19,13 +19,29 @@
 
 
 ## STEP 2 - K3s Prep
+Switch Debian firewall to legacy config
 ```bash
 sudo iptables -F
 sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
 sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
 sudo reboot
 ```
-
+### Change hostname
+1. Edit the file `/etc/hostname` and replace `raspberrypi` by kube-master
+   ```bash
+   sudo nano /etc/hostname
+   # kube-master
+   ```
+2. Edit the file `/etc/hosts` and replace `raspberrypi` (line 6) by `kube-master`
+   ```bash
+   sudo nano /etc/hosts
+   # ...
+   # 127.0.1.1       kube-master
+   ```
+### Upgrade the system
+```bash
+sudo apt-get update && sudo apt-get upgrade -y
+```
 
 ## STEP 3 - K3s Install
 1. 
@@ -40,21 +56,27 @@ sudo reboot
    ```bash
    systemctl status k3s
    ```
-4. Uninstall K3S if anything goes wrong
+   ::: warning Note
+   Uninstall K3S if anything goes wrong
    ```bash
    /usr/local/bin/k3s-uninstall.sh
    ```
-5. Get the node token from the master
+   :::
+4. Get the node token from the master
    ```bash
    sudo cat /var/lib/rancher/k3s/server/node-token
    ```
-6. Copy the k3s config file from the master node to your local machine
+5. Copy the k3s config file from the master node to your local machine
    ```bash
    scp pi@192.168.1.22:/etc/rancher/k3s/k3s.yaml ~/.kube/config
    ```
-7. The file contains endpoint 127.0.0.1, replace to master node IP address
+6. The file contains endpoint 127.0.0.1, replace to master node IP address
    ```bash
    sed -i '' 's/127\.0\.0\.1/192\.168\.1\.22/g' ~/.kube/config
+   ```
+7. Use the cluster context
+   ```bash
+   kubectl config use-context Raspberry
    ```
 
 ## STEP 4 - K3s Install (worker node setup)
@@ -68,13 +90,17 @@ Verify the status
 systemctl status k3s-agent
 ```
 
-Uninstall K3S if anything goes wrong
+::: warning Note
+Uninstall K3S agent if anything goes wrong
 ```bash
 /usr/local/bin/k3s-agent-uninstall.sh
 ```
+:::
 
-To remove node from the cluster
+::: info Note
+To remove any worker node from the cluster
 ```bash
-kubectl drain worker1 --ignore-daemonsets --delete-local-data
-kubectl delete node worker1
+kubectl drain kube-worker1 --ignore-daemonsets --delete-local-data
+kubectl delete node kube-worker1
 ```
+:::

@@ -39,10 +39,12 @@ After a few seconds, you should observe the MetalLB components deployed under `k
 kubectl get pods -n kube-system -l app=metallb -o wide
 ```
 
-### Uninstall MetalLB
+::: warning Note
+To Uninstall MetalLB
 ```bash
 helm uninstall metallb --namespace kube-system
 ```
+:::
 
 ---
 
@@ -106,13 +108,20 @@ data:
 type: kubernetes.io/tls
 ```
 
+::: warning Note
+To Uninstall Nginx Ingress
+```bash
+helm uninstall nginx-ingress --namespace kube-system
+```
+:::
+
 ---
 
 ## Install cert-manager
 
 Install the CustomResourceDefinition resources.
 ```bash
-kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.16.0/cert-manager.crds.yaml
+# kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.16.0/cert-manager.crds.yaml
 ```
 
 cert-manager Helm charts aren't hosted by the official Helm hub, you need to configure a new repository named JetStack which maintains those charts
@@ -122,46 +131,66 @@ helm repo add jetstack https://charts.jetstack.io && helm repo update
 
 Run the following command to install the cert-manager components under the kube-system namespace.
 ```bash
-helm install cert-manager jetstack/cert-manager --namespace kube-system --version v0.16.0 --set installCRDs=true
+helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.3.1 --set installCRDs=true
 ```
 
 Check that all three cert-manager components are running.
 ```bash
-kubectl get pods -n kube-system -l app.kubernetes.io/instance=cert-manager -o wide
+kubectl get pods -n cert-manager -l app.kubernetes.io/instance=cert-manager -o wide
 ```
+
+::: warning Uninstalling
+Before continuing, ensure that all cert-manager resources that have been created by users have been deleted
+```bash
+kubectl get Issuers,ClusterIssuers,Certificates,CertificateRequests,Orders,Challenges --all-namespaces
+```
+Once all these resources have been deleted you are ready to uninstall cert-manager.
+```bash
+helm uninstall cert-manager --namespace cert-manager
+```
+:::
+
+In order to begin issuing certificates, you will need to set up a ClusterIssuer
+or Issuer resource (for example, by creating a 'letsencrypt-staging' issuer).
 
 We now going to configure two certificate issuers from which signed x509 certificates can be obtained, such as Let’s Encrypt:
 * letsencrypt-staging: will be used for testing purpose only
 * letsencrypt-prod: will be used for production purpose.
-Run the following commands (change `<EMAIL>` by your email).
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1alpha2
+Run the following commands (change `<email>` by your email).
+```yaml
+# cluster-issuer-staging.yaml
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
 spec:
   acme:
-    email: <EMAIL>
+    # You must replace this email address with your own.
+    # Let's Encrypt will use this to contact you about expiring
+    # certificates, and issues related to your account.
+    email: <email>
     server: https://acme-staging-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
+      # Secret resource that will be used to store the account's private key.
       name: letsencrypt-staging
+    # Add a single challenge solver, HTTP01 using nginx
     solvers:
     - http01:
         ingress:
           class: nginx
-EOF
 ```
-
 ```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: cert-manager.io/v1alpha2
+kubectl apply -f cluster-issuer-staging.yaml
+```
+```yaml
+# cluster-issuer-prod.yaml
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
 spec:
   acme:
-    email: <EMAIL>
+    email: <email>
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: letsencrypt-prod
@@ -169,8 +198,12 @@ spec:
     - http01:
         ingress:
           class: nginx
-EOF
 ```
+```bash
+kubectl apply -f cluster-issuer-prod.yaml
+```
+More information on the different types of issuers and how to configure them
+can be found in our [documentation](https://cert-manager.io/docs/configuration/acme/#creating-a-basic-acme-issuer)
 
 Once done, we should be able to automatically issue a Let's Encrypt's certificate every time we configure an ingress with ssl.
 
@@ -197,92 +230,33 @@ spec:
             serviceName: <service_name>
             servicePort: 80
 ```
-
-### Uninstall cert-manager
-```bash
-helm uninstall cert-manager --namespace kube-system
-```
-
----
-
-## Manage storage
-
-Deploy the Persistent Volume
-```yaml
-# local-persistentvolume.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: local-pv
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  local:
-    path: "/mnt/disks"
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - <node_name>
-```
-```bash
-kubectl apply -f local-persistentvolume.yaml
-```
-
 OR
-
 ```yaml
-# hostpath-persistentvolume.yaml
-apiVersion: v1
-kind: PersistentVolume
+apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
-  name: app-ssd-pv
-  labels:
-    type: local
+  annotations:
+    # add an annotation indicating the issuer to use.
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  name: myIngress
+  namespace: <namespace>
 spec:
-  storageClassName: manual
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  hostPath:
-    path: "/mnt/ssd/apps"
+  tls: # < placing a host in the TLS config will determine what ends up in the cert's subjectAltNames
+  - hosts:
+    - <domain>
+    secretName: "<domain>-staging-tls" # < cert-manager will store the created certificate in this secret.
+  rules:
+  - host: <domain>
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: <service_name>
+            port:
+              number: 80
 ```
-```bash
-kubectl apply -f hostpath-persistentvolume.yaml
-```
-
-Deploy the Persistent Volume Claim
-```yaml
-# persistentvolumeclaim.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: my-volume
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-```
-
-```bash
-kubectl apply -f persistentvolumeclaim.yaml
-```
-
-Checkout the result
-```bash
-kubectl get pv
-```
+For information on how to configure cert-manager to automatically provision
+Certificates for Ingress resources, take a look at the `ingress-shim`
+[documentation](https://cert-manager.io/docs/usage/ingress/)
