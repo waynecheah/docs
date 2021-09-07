@@ -216,6 +216,7 @@ module.exports = {
 
       '/raspi/': [
         '',
+        'oled',
         'ddns',
         'pv',
         'install',
@@ -267,6 +268,7 @@ module.exports = {
           collapsable: true,
           children: [
             '',
+            'oled',
             'ddns',
             'pv',
             'install',
